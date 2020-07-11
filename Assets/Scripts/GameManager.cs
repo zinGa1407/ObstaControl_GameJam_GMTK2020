@@ -10,6 +10,8 @@ public class GameManager : MonoBehaviour
 
     private Checkpoint lastCheckPoint;
 
+    private bool isRemoteBroken = false;
+
     void Awake()
     {
         if (instance != null && instance != this)
@@ -33,8 +35,19 @@ public class GameManager : MonoBehaviour
         lastCheckPoint = cp;
     }
 
-    public void RespawnPlayer( GameObject player )
+    public void RespawnPlayer( GameObject player, Rigidbody rb )
     {
+        rb.velocity = Vector3.zero;
         player.transform.position = lastCheckPoint.GetRespawnPosition();
+        SoundManager.Instance.PlaySoundEffect("die");
+    }
+
+    public bool GetRemoteBroken()
+    {
+        return isRemoteBroken;
+    }
+    public void SetRemoteBroken(bool isBroken)
+    {
+        isRemoteBroken = isBroken;
     }
 }

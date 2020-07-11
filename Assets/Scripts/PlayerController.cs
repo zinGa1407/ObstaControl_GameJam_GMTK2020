@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,13 +8,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private GameObject remoteControlModel = null;
 
-    public float maxSpeed = 8f;
+    private float moveSpeedMultiplier = 10f;
+    private float maxSpeed = 4f;
 
-    public bool up { get; set; }
-    public bool down { get; set; }
-    public bool right { get; set; }
-    public bool left { get; set; }
-    public bool canJump { get; set; }
+    public bool canJump;
 
     //Jump timers
     private float afterFallJumpTimer = 0f;
@@ -21,13 +19,30 @@ public class PlayerController : MonoBehaviour
     private float RESET_JUMP_TIMER = 0.2f;
 
     private Vector3 jumpForce = new Vector3(0f, 250f, 0f);
-    private Vector3 forwardForce = new Vector3(0f, 0f, 10f);
-    private Vector3 strafeForce = new Vector3(10f, 0f, 0f);
+    private float horizontal;
+    private float vertical;
 
     private Rigidbody _rb;
+    [SerializeField]
+    private Animator _animator;
+    private string lastAnimState = "Idle";
 
     private bool hasRemoteControl = false;
 
+    private List<IObstacle> interactingObstacles = new List<IObstacle>();
+
+    Vector3[] rays = new[]
+    {
+        Vector3.zero,
+        new Vector3(0f, 0f, 0.25f),
+        new Vector3(0.25f, 0f, 0.25f),
+        new Vector3(0.25f, 0f, 0f),
+        new Vector3(0.25f, 0f, -0.25f),
+        new Vector3(0f, 0f, -0.25f),
+        new Vector3(-0.25f, 0f, -0.25f),
+        new Vector3(-0.25f, 0f, 0f),
+        new Vector3(-0.25f, 0f, 0.25f)
+    };
 
     private void Awake()
     {
@@ -37,20 +52,22 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         //Movement Input
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) up = true;
-        else up = false;
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow)) left = true;
-        else left = false;
-        if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) down = true;
-        else down = false;
-        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow)) right = true;
-        else right = false;
+        horizontal = Input.GetAxis("Horizontal");
+        vertical = Input.GetAxis("Vertical");
 
         //Remote Control Input
         if(hasRemoteControl)
         {
             if (Input.GetKeyDown(KeyCode.F))
-                Debug.Log("Remote Button pressed");
+            { 
+                if(interactingObstacles.Count > 0)
+                {
+                    foreach(var _obstacle in interactingObstacles)
+                    {
+                        _obstacle.Interaction(true);
+                    }
+                }
+            } 
         }
 
         // Jump Logic
@@ -67,28 +84,44 @@ public class PlayerController : MonoBehaviour
         }
 
         if (bunnyHopJumpTimer >= 0f) bunnyHopJumpTimer -= Time.deltaTime;
+
+        //Respawn Player
+        if (Input.GetKeyDown(KeyCode.R)) GameManager.Instance.RespawnPlayer(this.gameObject, _rb);
     }
 
-    private bool IsGrounded()
-    {
-        return Physics.Raycast(transform.position, -Vector3.up, 1.05f, LayerMask.NameToLayer("Grouned"));
-    }
+    
 
     private void FixedUpdate()
     {
         //Movement
-        Vector3 movementForce = Vector3.zero;
-        if (up) movementForce += forwardForce;
-        if (down) movementForce -= forwardForce;
-        if (right) movementForce += strafeForce;
-        if (left) movementForce -= strafeForce;
+        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
 
         //Limit velocity
-        if (_rb.velocity.x >= maxSpeed || _rb.velocity.x <= -maxSpeed) movementForce.x = 0f;
-        if (_rb.velocity.z >= maxSpeed || _rb.velocity.z <= -maxSpeed) movementForce.z = 0f;
+        //if (_rb.velocity.x >= maxSpeed || _rb.velocity.x <= -maxSpeed) movementForce.x = 0f;
+        //if (_rb.velocity.z >= maxSpeed || _rb.velocity.z <= -maxSpeed) movementForce.z = 0f;
 
         //Add movement Force to rigidbody
-        _rb.AddForce(movementForce, ForceMode.Force);
+        if (IsGrounded())
+        {
+            if (Mathf.Abs(_rb.velocity.z) < maxSpeed && Mathf.Abs(_rb.velocity.x) < maxSpeed)
+                _rb.AddForce(direction * moveSpeedMultiplier * 2f, ForceMode.Force);
+            if(direction == Vector3.zero) _rb.velocity = new Vector3(_rb.velocity.x * 0.8f, _rb.velocity.y, _rb.velocity.z * 0.8f);
+        }
+        else // Air control
+        {
+            if (Mathf.Abs(_rb.velocity.z) <= maxSpeed || Mathf.Abs(_rb.velocity.x) <= maxSpeed)
+            {
+                if(Vector3.Dot(_rb.velocity.normalized, direction) > 0.5f)
+                {
+                    _rb.AddForce(direction * moveSpeedMultiplier, ForceMode.Acceleration);
+                }
+                else _rb.AddForce(direction * moveSpeedMultiplier *2f, ForceMode.Acceleration);
+
+                _rb.velocity = new Vector3(Mathf.Clamp(_rb.velocity.x, -maxSpeed, maxSpeed), _rb.velocity.y, Mathf.Clamp(_rb.velocity.z, -maxSpeed, maxSpeed));
+            }
+            //Slow down velocity to make movement work again    
+            else _rb.velocity = new Vector3(_rb.velocity.x * 0.9f, _rb.velocity.y, _rb.velocity.z * 0.9f);
+        }
 
         //Jump
         if ((Input.GetKey(KeyCode.Space) || bunnyHopJumpTimer > 0f))
@@ -98,39 +131,124 @@ public class PlayerController : MonoBehaviour
                 _rb.velocity = new Vector3(_rb.velocity.x, 0, _rb.velocity.z);
                 _rb.AddForce(jumpForce, ForceMode.Force);
                 canJump = false;
+                SoundManager.Instance.PlaySoundEffect("jump");
             }
             else
             {
                 if(bunnyHopJumpTimer < 0f ) bunnyHopJumpTimer = RESET_JUMP_TIMER;
             }
         }
+
+        PlayerAnimationControl();
     }
 
     private void PickupRemoteControl(GameObject pickupObject)
     {
-        Destroy(pickupObject);
+        Destroy(pickupObject.transform.parent.gameObject);
         hasRemoteControl = true;
 
         //Activate RemoteControl model in hand
         remoteControlModel.SetActive(true);
 
         //Activate UI Element for RemoteControl
-
-        //Explain Pressing F
+        UIManager.Instance.AddFeedbackText("You have picked up a remote control!");
+        UIManager.Instance.ActivateUIElement("RemoteControl");
     }
 
     //Collision checking triggers
     private void OnTriggerEnter(Collider other)
     {
+        if (other.tag == "Obstacle")
+        {
+            IObstacle obstacle = other.transform.parent.gameObject.GetComponent<IObstacle>();
+            interactingObstacles.Add(obstacle);
+            if (GameManager.Instance.GetRemoteBroken()) obstacle.Interaction(true);
+        }
+
         //Checkpoint trigger
         if (other.tag == "Checkpoint") GameManager.Instance.SetNewCheckpoint(other.GetComponent<Checkpoint>());
         
         //Player dies
-        if (other.tag == "KillZone") GameManager.Instance.RespawnPlayer( this.gameObject );
+        if (other.tag == "KillZone") GameManager.Instance.RespawnPlayer( this.gameObject, _rb );
 
         //Remote control pickup
         if (other.tag == "RemoteControl") PickupRemoteControl(other.gameObject);
 
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.tag == "Obstacle") other.transform.parent.gameObject.GetComponent<IObstacle>().Interaction(false);
+    }
+
+    private void PlayerAnimationControl()
+    {
+        if ((Mathf.Abs(_rb.velocity.z) > Mathf.Abs(_rb.velocity.x)) && Mathf.Abs(_rb.velocity.z) > 0.3f)      //Forward or Backward anim
+        {
+            if (_rb.velocity.z > 0.3f)
+            {
+                if (lastAnimState != "RunForward")
+                {
+                    _animator.SetBool(lastAnimState, false);
+                    _animator.SetBool("RunForward", true);
+                    lastAnimState = "RunForward";
+                }
+            }
+            else if (_rb.velocity.z < -0.3f)
+            {
+                if (lastAnimState != "RunBackward")
+                {
+                    _animator.SetBool(lastAnimState, false);
+                    _animator.SetBool("RunBackward", true);
+                    lastAnimState = "RunBackward";
+                }
+            }
+        }
+        else if (_rb.velocity.x > 0.3f)
+        {
+            if (lastAnimState != "StrafeRight")
+            {
+                _animator.SetBool(lastAnimState, false);
+                _animator.SetBool("StrafeRight", true);
+                lastAnimState = "StrafeRight";
+            }
+        }
+        else if (_rb.velocity.x < -0.3f)
+        {
+            if (lastAnimState != "StrafeLeft")
+            {
+                _animator.SetBool(lastAnimState, false);
+                _animator.SetBool("StrafeLeft", true);
+                lastAnimState = "StrafeLeft";
+            }
+        }
+        else //Idle
+        {
+            if (horizontal == 0f && vertical == 0f)
+            {
+                if (lastAnimState != "Idle")
+                {
+                    _animator.SetBool(lastAnimState, false);
+                    _animator.SetBool("Idle", true);
+                    lastAnimState = "Idle";
+                }
+            }
+        }
+            
+    }
+
+    private bool IsGrounded()
+    {
+        foreach (var ray in rays)
+        {
+            Debug.DrawRay(transform.position - ray, Vector3.down * 1.1f, Color.red);
+            if (Physics.Raycast(transform.position - ray, Vector3.down, out RaycastHit hit, 1.1f, LayerMask.NameToLayer("Ground")))
+            {
+                 return true;
+            }
+            
+        }
+        return false;
     }
 
 }

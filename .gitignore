@@ -58,3 +58,9 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
+# Ignore installed plugin and asset pack content
+[Aa]ssets/Doozy/Examples/
+
+#Ignore Asset Packages
+/[Aa]ssets/Asset Packs/
+/[Aa]ssets/Asset Packs.meta

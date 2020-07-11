@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SlidingDoor : MonoBehaviour, IObstacle
+public class MovingPlatform : MonoBehaviour, IObstacle
 {
     private bool activeInteraction = false;
 
@@ -28,9 +28,9 @@ public class SlidingDoor : MonoBehaviour, IObstacle
 
     private void Update()
     {
-        if(activeInteraction)
+        if (activeInteraction)
         {
-            if(isBroken)
+            if (isBroken)
             {
                 Vector3 v = startPosition.position;
                 v.y += Mathf.Abs(startPosition.position.y - endPosition.position.y) * Mathf.Abs(Mathf.Sin(Time.time * speed));
@@ -46,7 +46,7 @@ public class SlidingDoor : MonoBehaviour, IObstacle
             {
                 thisObstacle.transform.position = Vector3.Slerp(thisObstacle.transform.position, endPosition.position, Time.deltaTime);
             }
-            
+
         }
     }
 
@@ -54,5 +54,4 @@ public class SlidingDoor : MonoBehaviour, IObstacle
     {
         speed = Random.Range(minSpeed, maxSpeed);
     }
-
 }

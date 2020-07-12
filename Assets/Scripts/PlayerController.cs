@@ -185,6 +185,7 @@ public class PlayerController : MonoBehaviour
         {
             IObstacle obstacle = other.transform.parent.gameObject.GetComponent<IObstacle>();
             interactingObstacles.Add(obstacle);
+            obstacle.ShowFeedbackText(true);
             if (GameManager.Instance.GetRemoteBroken()) obstacle.Interaction(true);
         }
 
@@ -205,6 +206,7 @@ public class PlayerController : MonoBehaviour
         {
             IObstacle obstacle = other.transform.parent.gameObject.GetComponent<IObstacle>();
             obstacle.Interaction(false);
+            obstacle.ShowFeedbackText(false);
             interactingObstacles.Remove(obstacle);
         }
     }

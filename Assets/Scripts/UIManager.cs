@@ -26,25 +26,26 @@ public class UIManager : MonoBehaviour
 
     private List<string> feedbackQueue = new List<string>();
     private float feedbackTimer = 0f;
-    private float FEEDBACK_TIME = 4f;
+    private float FEEDBACK_TIME = 3f;
 
     [SerializeField]
     private TMP_Text feedbackText = null;
 
     [SerializeField]
-    private GameObject RemoteInstructions = null;
-    [SerializeField]
-    private GameObject RemoteVisual = null;
+    private GameObject ingameMenu = null;
 
     [SerializeField]
-    private GameObject ingameMenu;
+    private Slider volumeSlider = null;
 
     [SerializeField]
-    private Slider volumeSlider;
+    private SlowTextAdder slowTextAdder = null;
 
     private void Start()
     {
         if (SoundManager.Instance != null) volumeSlider.value = SoundManager.Instance.GetMusicSourceVolume();
+
+        //Start of game dialogue
+        StartDialogue();
     }
 
     private void Update()
@@ -61,6 +62,11 @@ public class UIManager : MonoBehaviour
     public GameObject GetIngameMenu()
     {
         return ingameMenu;
+    }
+
+    public void StartDialogue()
+    {
+        slowTextAdder.StartNewDialogueText("Welcome test subject #001407\nGrab the remote control and get to the end\nGood Luck...");
     }
 
     public void AddFeedbackText(string feedbacktxt)
@@ -87,8 +93,6 @@ public class UIManager : MonoBehaviour
         switch(element)
         {
             case "RemoteControl":
-                if(RemoteInstructions != null) RemoteInstructions.SetActive(true);
-                if(RemoteVisual != null) RemoteVisual.SetActive(true);
                 break;
         }
     }

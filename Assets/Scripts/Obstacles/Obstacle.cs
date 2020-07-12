@@ -5,4 +5,6 @@ using UnityEngine;
 public interface IObstacle
 {
     void Interaction(bool interacting);
+
+    void ShowFeedbackText(bool active);
 }

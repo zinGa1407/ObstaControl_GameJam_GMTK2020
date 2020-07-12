@@ -7,10 +7,13 @@ public class MovingPlatform : MonoBehaviour, IObstacle
     private bool activeInteraction = false;
 
     [SerializeField]
-    private bool isBroken;
+    private bool isBroken = false;
 
     [SerializeField]
-    private GameObject thisObstacle;
+    private GameObject thisObstacle = null;
+    
+    [SerializeField]
+    private GameObject feedbackText = null;
 
     public Transform startPosition;
     public Transform endPosition;
@@ -53,5 +56,10 @@ public class MovingPlatform : MonoBehaviour, IObstacle
     private void GetRandomSpeed()
     {
         speed = Random.Range(minSpeed, maxSpeed);
+    }
+
+    public void ShowFeedbackText(bool _active)
+    {
+        if (feedbackText != null) feedbackText.SetActive(_active);
     }
 }

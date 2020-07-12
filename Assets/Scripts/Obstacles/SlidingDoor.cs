@@ -10,7 +10,10 @@ public class SlidingDoor : MonoBehaviour, IObstacle
     private bool isBroken;
 
     [SerializeField]
-    private GameObject thisObstacle;
+    private GameObject thisObstacle = null;
+
+    [SerializeField]
+    private GameObject feedbackText = null;
 
     public Transform startPosition;
     public Transform endPosition;
@@ -53,6 +56,11 @@ public class SlidingDoor : MonoBehaviour, IObstacle
     private void GetRandomSpeed()
     {
         speed = Random.Range(minSpeed, maxSpeed);
+    }
+
+    public void ShowFeedbackText(bool _active)
+    {
+        if (feedbackText != null) feedbackText.SetActive(_active);
     }
 
 }

@@ -51,95 +51,118 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        //Movement Input
-        horizontal = Input.GetAxis("Horizontal");
-        vertical = Input.GetAxis("Vertical");
-
-        //Remote Control Input
-        if(hasRemoteControl)
+        if(GameManager.Instance != null)
         {
-            if (Input.GetKeyDown(KeyCode.F))
-            { 
-                if(interactingObstacles.Count > 0)
+            if(GameManager.Instance.gameState == GameManager.GameState.PLAY)
+            {
+                //Movement Input
+                horizontal = Input.GetAxis("Horizontal");
+                vertical = Input.GetAxis("Vertical");
+
+                //Remote Control Input
+                if (hasRemoteControl)
                 {
-                    foreach(var _obstacle in interactingObstacles)
+                    if (Input.GetKeyDown(KeyCode.F))
                     {
-                        _obstacle.Interaction(true);
+                        if (interactingObstacles.Count > 0)
+                        {
+                            foreach (var _obstacle in interactingObstacles)
+                            {
+                                _obstacle.Interaction(true);
+                            }
+                        }
                     }
                 }
-            } 
-        }
 
-        // Jump Logic
-        if (IsGrounded())
-        {
-            canJump = true;
-            afterFallJumpTimer = RESET_JUMP_TIMER;
-        }
-        else
-        {
-            if (afterFallJumpTimer >= 0f) afterFallJumpTimer -= Time.deltaTime;
-            if (afterFallJumpTimer < 0f)
-                canJump = false;
-        }
+                // Jump Logic
+                if (IsGrounded())
+                {
+                    canJump = true;
+                    afterFallJumpTimer = RESET_JUMP_TIMER;
+                }
+                else
+                {
+                    if (afterFallJumpTimer >= 0f) afterFallJumpTimer -= Time.deltaTime;
+                    if (afterFallJumpTimer < 0f)
+                        canJump = false;
+                }
 
-        if (bunnyHopJumpTimer >= 0f) bunnyHopJumpTimer -= Time.deltaTime;
+                if (bunnyHopJumpTimer >= 0f) bunnyHopJumpTimer -= Time.deltaTime;
 
-        //Respawn Player
-        if (Input.GetKeyDown(KeyCode.R)) GameManager.Instance.RespawnPlayer(this.gameObject, _rb);
+                //Respawn Player
+                if (Input.GetKeyDown(KeyCode.R)) GameManager.Instance.RespawnPlayer(this.gameObject, _rb);
+            }
+
+            //Ingame Menu
+            if (Input.GetKeyDown(KeyCode.Escape)) GameManager.Instance.ShowIngameMenu();
+        }
     }
 
-    
+
 
     private void FixedUpdate()
     {
-        //Movement
-        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
-
-        //Limit velocity
-        //if (_rb.velocity.x >= maxSpeed || _rb.velocity.x <= -maxSpeed) movementForce.x = 0f;
-        //if (_rb.velocity.z >= maxSpeed || _rb.velocity.z <= -maxSpeed) movementForce.z = 0f;
-
-        //Add movement Force to rigidbody
-        if (IsGrounded())
+        if (GameManager.Instance != null)
         {
-            if (Mathf.Abs(_rb.velocity.z) < maxSpeed && Mathf.Abs(_rb.velocity.x) < maxSpeed)
-                _rb.AddForce(direction * moveSpeedMultiplier * 2f, ForceMode.Force);
-            if(direction == Vector3.zero) _rb.velocity = new Vector3(_rb.velocity.x * 0.8f, _rb.velocity.y, _rb.velocity.z * 0.8f);
-        }
-        else // Air control
-        {
-            if (Mathf.Abs(_rb.velocity.z) <= maxSpeed || Mathf.Abs(_rb.velocity.x) <= maxSpeed)
+            if (GameManager.Instance.gameState == GameManager.GameState.PLAY)
             {
-                if(Vector3.Dot(_rb.velocity.normalized, direction) > 0.5f)
+                //Movement
+                Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
+
+                //Limit velocity
+                //if (_rb.velocity.x >= maxSpeed || _rb.velocity.x <= -maxSpeed) movementForce.x = 0f;
+                //if (_rb.velocity.z >= maxSpeed || _rb.velocity.z <= -maxSpeed) movementForce.z = 0f;
+
+                //Add movement Force to rigidbody
+                if (IsGrounded())
                 {
-                    _rb.AddForce(direction * moveSpeedMultiplier, ForceMode.Acceleration);
+                    if (Mathf.Abs(_rb.velocity.z) < maxSpeed && Mathf.Abs(_rb.velocity.x) < maxSpeed)
+                        _rb.AddForce(direction * moveSpeedMultiplier * 2f, ForceMode.Force);
+                    if (direction == Vector3.zero) _rb.velocity = new Vector3(_rb.velocity.x * 0.8f, _rb.velocity.y, _rb.velocity.z * 0.8f);
                 }
-                else _rb.AddForce(direction * moveSpeedMultiplier *2f, ForceMode.Acceleration);
+                else // Air control
+                {
+                    if (Mathf.Abs(_rb.velocity.z) <= maxSpeed || Mathf.Abs(_rb.velocity.x) <= maxSpeed)
+                    {
+                        if (Vector3.Dot(_rb.velocity.normalized, direction) > 0.5f)
+                        {
+                            _rb.AddForce(direction * moveSpeedMultiplier, ForceMode.Acceleration);
+                        }
+                        else _rb.AddForce(direction * moveSpeedMultiplier * 2f, ForceMode.Acceleration);
 
-                _rb.velocity = new Vector3(Mathf.Clamp(_rb.velocity.x, -maxSpeed, maxSpeed), _rb.velocity.y, Mathf.Clamp(_rb.velocity.z, -maxSpeed, maxSpeed));
+                        _rb.velocity = new Vector3(Mathf.Clamp(_rb.velocity.x, -maxSpeed, maxSpeed), _rb.velocity.y, Mathf.Clamp(_rb.velocity.z, -maxSpeed, maxSpeed));
+                    }
+                    //Slow down velocity to make movement work again    
+                    else _rb.velocity = new Vector3(_rb.velocity.x * 0.9f, _rb.velocity.y, _rb.velocity.z * 0.9f);
+                }
+
+                //Jump
+                if ((Input.GetKey(KeyCode.Space) || bunnyHopJumpTimer > 0f))
+                {
+                    if (canJump)
+                    {
+                        _rb.velocity = new Vector3(_rb.velocity.x, 0, _rb.velocity.z);
+                        _rb.AddForce(jumpForce, ForceMode.Force);
+                        canJump = false;
+                        SoundManager.Instance.PlaySoundEffect("jump");
+
+                        if (lastAnimState != "Jumping")
+                        {
+                            _animator.SetBool(lastAnimState, false);
+                            _animator.SetBool("Jumping", true);
+                            lastAnimState = "Jumping";
+                        }
+                        else _animator.Play("Jumping", 0, 0f);
+                    }
+                    else
+                    {
+                        if (bunnyHopJumpTimer < 0f) bunnyHopJumpTimer = RESET_JUMP_TIMER;
+                    }
+                }
+
+                PlayerAnimationControl();
             }
-            //Slow down velocity to make movement work again    
-            else _rb.velocity = new Vector3(_rb.velocity.x * 0.9f, _rb.velocity.y, _rb.velocity.z * 0.9f);
         }
-
-        //Jump
-        if ((Input.GetKey(KeyCode.Space) || bunnyHopJumpTimer > 0f))
-        {
-            if (canJump)
-            {
-                _rb.velocity = new Vector3(_rb.velocity.x, 0, _rb.velocity.z);
-                _rb.AddForce(jumpForce, ForceMode.Force);
-                canJump = false;
-                SoundManager.Instance.PlaySoundEffect("jump");
-            }
-            else
-            {
-                if(bunnyHopJumpTimer < 0f ) bunnyHopJumpTimer = RESET_JUMP_TIMER;
-            }
-        }
-
-        PlayerAnimationControl();
     }
 
     private void PickupRemoteControl(GameObject pickupObject)
@@ -178,11 +201,17 @@ public class PlayerController : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.tag == "Obstacle") other.transform.parent.gameObject.GetComponent<IObstacle>().Interaction(false);
+        if (other.tag == "Obstacle")
+        {
+            IObstacle obstacle = other.transform.parent.gameObject.GetComponent<IObstacle>();
+            obstacle.Interaction(false);
+            interactingObstacles.Remove(obstacle);
+        }
     }
 
     private void PlayerAnimationControl()
     {
+        if (lastAnimState == "Jumping" && !canJump) return;
         if ((Mathf.Abs(_rb.velocity.z) > Mathf.Abs(_rb.velocity.x)) && Mathf.Abs(_rb.velocity.z) > 0.3f)      //Forward or Backward anim
         {
             if (_rb.velocity.z > 0.3f)

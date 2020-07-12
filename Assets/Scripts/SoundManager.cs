@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class SoundManager : MonoBehaviour
 {
@@ -34,11 +35,36 @@ public class SoundManager : MonoBehaviour
         else
         {
             instance = this;
-            DontDestroyOnLoad(this);
+            //DontDestroyOnLoad(this);
         }
 
         audioClips = audioFiles.ToDictionary(key => key.name, value => value.clip);
-        Debug.Log("Current amount of audio clips in Dictionary : " + audioClips.Count);
+        //Debug.Log("Current amount of audio clips in Dictionary : " + audioClips.Count);
+
+
+        //Set Volume
+        if (GamePreferences.Instance != null)
+        {
+            //Debug.Log("Change Volume called with value of : " + GamePreferences.Instance.audioVolume);
+            //Set Volume on Sources
+            ChangeSourceVolume(GamePreferences.Instance.audioVolume);
+        }
+    }
+
+    public void ChangeSourceVolume(float sliderValue)
+    {
+        musicSource.volume = sliderValue;
+        if (sliderValue != 0f)
+        {
+            sfxSource.volume = sliderValue / 2f;
+        }
+        else sfxSource.volume = sliderValue;
+
+    }
+
+    public float GetMusicSourceVolume()
+    {
+        return musicSource.volume;
     }
 
     public void PlayMusic()

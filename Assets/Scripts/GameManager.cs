@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -11,6 +12,15 @@ public class GameManager : MonoBehaviour
     private Checkpoint lastCheckPoint;
 
     private bool isRemoteBroken = false;
+
+    public GameState gameState = GameState.PLAY;
+
+    public enum GameState
+    {
+        PLAY,
+        PAUSE
+    }
+
 
     void Awake()
     {
@@ -23,6 +33,7 @@ public class GameManager : MonoBehaviour
             instance = this;
             //DontDestroyOnLoad(this);
         }
+        Time.timeScale = 1f;
     }
 
     public Checkpoint GetLastCheckpoint()
@@ -49,5 +60,28 @@ public class GameManager : MonoBehaviour
     public void SetRemoteBroken(bool isBroken)
     {
         isRemoteBroken = isBroken;
+    }
+
+    public void ShowIngameMenu()
+    {
+        GameObject IngameMenu = UIManager.Instance.GetIngameMenu();
+        if (IngameMenu.activeSelf)
+        {
+            IngameMenu.SetActive(false);
+            gameState = GameState.PLAY;
+            Time.timeScale = 1f;
+        }
+        else
+        {
+            IngameMenu.SetActive(true);
+            gameState = GameState.PAUSE;
+            Time.timeScale = 0f;
+        }
+    }
+
+    public void LoadScene(int v)
+    {
+        SceneManager.LoadScene(v);
+        Time.timeScale = 1f;
     }
 }

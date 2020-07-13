@@ -10,6 +10,9 @@ public class MovingPlatform : MonoBehaviour, IObstacle
     private bool isBroken = false;
 
     [SerializeField]
+    private bool cannotBeTurnedOff = false;
+
+    [SerializeField]
     private GameObject thisObstacle = null;
     
     [SerializeField]
@@ -18,6 +21,7 @@ public class MovingPlatform : MonoBehaviour, IObstacle
     public Transform startPosition;
     public Transform endPosition;
 
+    [SerializeField]
     private float speed = 2.0f;
     private float minSpeed = 1.0f;
     private float maxSpeed = 5.0f;
@@ -26,6 +30,7 @@ public class MovingPlatform : MonoBehaviour, IObstacle
 
     public void Interaction(bool interacting)
     {
+        if (activeInteraction && cannotBeTurnedOff) return;
         activeInteraction = interacting;
     }
 
@@ -33,17 +38,23 @@ public class MovingPlatform : MonoBehaviour, IObstacle
     {
         if (activeInteraction)
         {
+
+            if (!thisObstacle.activeSelf) thisObstacle.SetActive(true);
+
             if (isBroken)
             {
+                //Vector3 v = startPosition.position;
                 Vector3 v = startPosition.position;
-                v.y += Mathf.Abs(startPosition.position.y - endPosition.position.y) * Mathf.Abs(Mathf.Sin(Time.time * speed));
+                v.x += (endPosition.position.x - startPosition.position.x) * Mathf.Abs(Mathf.Sin(Time.time * speed));
+                v.y += (endPosition.position.y - startPosition.position.y) * Mathf.Abs(Mathf.Sin(Time.time * speed));
+                v.z += (endPosition.position.z - startPosition.position.z) * Mathf.Abs(Mathf.Sin(Time.time * speed));
                 thisObstacle.transform.position = v;
 
-                if (GameManager.Instance.GetRemoteBroken())
+                /*if (GameManager.Instance.GetRemoteBroken())
                 {
                     if (randomSpeedTimer >= 0f) randomSpeedTimer -= Time.deltaTime;
                     else GetRandomSpeed();
-                }
+                }*/
             }
             else
             {

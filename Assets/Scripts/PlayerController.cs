@@ -2,11 +2,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
     [SerializeField]
     private GameObject remoteControlModel = null;
+
+    [SerializeField]
+    private GameObject remoteControlParticle = null;
 
     private float moveSpeedMultiplier = 10f;
     private float maxSpeed = 4f;
@@ -17,6 +21,9 @@ public class PlayerController : MonoBehaviour
     private float afterFallJumpTimer = 0f;
     private float bunnyHopJumpTimer = 0f;
     private float RESET_JUMP_TIMER = 0.2f;
+    private float justJumpedTimer = 0.2f;
+    private float JUMP_COOLDOWN_TIMER = 0.2f;
+
 
     private Vector3 jumpForce = new Vector3(0f, 250f, 0f);
     private float horizontal;
@@ -24,9 +31,10 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody _rb;
     [SerializeField]
-    private Animator _animator;
+    private Animator _animator = null;
     private string lastAnimState = "Idle";
 
+    [SerializeField]
     private bool hasRemoteControl = false;
 
     private List<IObstacle> interactingObstacles = new List<IObstacle>();
@@ -75,19 +83,49 @@ public class PlayerController : MonoBehaviour
                 }
 
                 // Jump Logic
-                if (IsGrounded())
+                if (justJumpedTimer <= 0f)
                 {
-                    canJump = true;
-                    afterFallJumpTimer = RESET_JUMP_TIMER;
+                    if (IsGrounded())
+                    {
+                        canJump = true;
+                        afterFallJumpTimer = RESET_JUMP_TIMER;
+                    }
+                    else
+                    {
+                        if (afterFallJumpTimer >= 0f) afterFallJumpTimer -= Time.deltaTime;
+                        if (afterFallJumpTimer < 0f)
+                            canJump = false;
+                    }
                 }
-                else
+
+                //JUMP
+                if ((Input.GetKeyDown(KeyCode.Space) || bunnyHopJumpTimer > 0f))
                 {
-                    if (afterFallJumpTimer >= 0f) afterFallJumpTimer -= Time.deltaTime;
-                    if (afterFallJumpTimer < 0f)
+                    if (canJump)
+                    {
+                        _rb.velocity = new Vector3(_rb.velocity.x, 0, _rb.velocity.z);
+                        _rb.AddForce(jumpForce, ForceMode.Force);
                         canJump = false;
+                        SoundManager.Instance.PlaySoundEffect("jump");
+
+                        justJumpedTimer = JUMP_COOLDOWN_TIMER;
+
+                        if (lastAnimState != "Jumping")
+                        {
+                            _animator.SetBool(lastAnimState, false);
+                            _animator.SetBool("Jumping", true);
+                            lastAnimState = "Jumping";
+                        }
+                        else _animator.Play("Jumping", 0, 0f);
+                    }
+                    else
+                    {
+                        if (bunnyHopJumpTimer < 0f) bunnyHopJumpTimer = RESET_JUMP_TIMER;
+                    }
                 }
 
                 if (bunnyHopJumpTimer >= 0f) bunnyHopJumpTimer -= Time.deltaTime;
+                if (justJumpedTimer >= 0f) justJumpedTimer -= Time.deltaTime;
 
                 //Respawn Player
                 if (Input.GetKeyDown(KeyCode.R)) GameManager.Instance.RespawnPlayer(this.gameObject, _rb);
@@ -136,29 +174,29 @@ public class PlayerController : MonoBehaviour
                     else _rb.velocity = new Vector3(_rb.velocity.x * 0.9f, _rb.velocity.y, _rb.velocity.z * 0.9f);
                 }
 
-                //Jump
-                if ((Input.GetKey(KeyCode.Space) || bunnyHopJumpTimer > 0f))
-                {
-                    if (canJump)
-                    {
-                        _rb.velocity = new Vector3(_rb.velocity.x, 0, _rb.velocity.z);
-                        _rb.AddForce(jumpForce, ForceMode.Force);
-                        canJump = false;
-                        SoundManager.Instance.PlaySoundEffect("jump");
+                ////Jump
+                //if ((Input.GetKeyDown(KeyCode.Space) || bunnyHopJumpTimer > 0f))
+                //{
+                //    if (canJump)
+                //    {
+                //        _rb.velocity = new Vector3(_rb.velocity.x, 0, _rb.velocity.z);
+                //        _rb.AddForce(jumpForce, ForceMode.Force);
+                //        canJump = false;
+                //        SoundManager.Instance.PlaySoundEffect("jump");
 
-                        if (lastAnimState != "Jumping")
-                        {
-                            _animator.SetBool(lastAnimState, false);
-                            _animator.SetBool("Jumping", true);
-                            lastAnimState = "Jumping";
-                        }
-                        else _animator.Play("Jumping", 0, 0f);
-                    }
-                    else
-                    {
-                        if (bunnyHopJumpTimer < 0f) bunnyHopJumpTimer = RESET_JUMP_TIMER;
-                    }
-                }
+                //        if (lastAnimState != "Jumping")
+                //        {
+                //            _animator.SetBool(lastAnimState, false);
+                //            _animator.SetBool("Jumping", true);
+                //            lastAnimState = "Jumping";
+                //        }
+                //        else _animator.Play("Jumping", 0, 0f);
+                //    }
+                //    else
+                //    {
+                //        if (bunnyHopJumpTimer < 0f) bunnyHopJumpTimer = RESET_JUMP_TIMER;
+                //    }
+                //}
 
                 PlayerAnimationControl();
             }
@@ -176,6 +214,8 @@ public class PlayerController : MonoBehaviour
         //Activate UI Element for RemoteControl
         UIManager.Instance.AddFeedbackText("You have picked up a remote control!");
         UIManager.Instance.ActivateUIElement("RemoteControl");
+
+        SoundManager.Instance.PlaySoundEffect("remote");
     }
 
     //Collision checking triggers
@@ -198,6 +238,24 @@ public class PlayerController : MonoBehaviour
         //Remote control pickup
         if (other.tag == "RemoteControl") PickupRemoteControl(other.gameObject);
 
+
+        if (other.tag == "MovingPlatform") gameObject.transform.parent = other.gameObject.transform;
+
+
+        if (other.tag == "BrokenController")
+        {
+            GameManager.Instance.SetControllerBroken();
+            Destroy(other.gameObject);
+            remoteControlParticle.SetActive(true);
+            SoundManager.Instance.PlaySoundEffect("broken");
+        }
+
+        if (other.tag == "Finish")
+        {
+            GameManager.Instance.FinishReached();
+            SoundManager.Instance.PlaySoundEffect("finish");
+        }
+
     }
 
     private void OnTriggerExit(Collider other)
@@ -209,6 +267,8 @@ public class PlayerController : MonoBehaviour
             obstacle.ShowFeedbackText(false);
             interactingObstacles.Remove(obstacle);
         }
+
+        if (other.tag == "MovingPlatform") gameObject.transform.parent = null;
     }
 
     private void PlayerAnimationControl()
@@ -270,10 +330,14 @@ public class PlayerController : MonoBehaviour
 
     private bool IsGrounded()
     {
+        int layerMask = 1 << LayerMask.NameToLayer("Wall");
+
+        layerMask = ~layerMask;
+
         foreach (var ray in rays)
         {
-            Debug.DrawRay(transform.position - ray, Vector3.down * 1.1f, Color.red);
-            if (Physics.Raycast(transform.position - ray, Vector3.down, out RaycastHit hit, 1.1f, LayerMask.NameToLayer("Ground")))
+            Debug.DrawRay(transform.position - ray, Vector3.down * 1.02f, Color.red);
+            if (Physics.Raycast(transform.position - ray, Vector3.down, out RaycastHit hit, 1.1f, layerMask))
             {
                  return true;
             }

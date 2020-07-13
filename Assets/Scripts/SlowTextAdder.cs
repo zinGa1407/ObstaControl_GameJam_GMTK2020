@@ -25,7 +25,7 @@ public class SlowTextAdder : MonoBehaviour
     {
         dialogueHolder.SetActive(true);
 
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(1f);
 
         foreach (char letter in message.ToCharArray())
         {

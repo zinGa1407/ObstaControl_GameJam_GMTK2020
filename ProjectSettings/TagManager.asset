@@ -9,6 +9,9 @@ TagManager:
   - Checkpoint
   - RemoteControl
   - Obstacle
+  - MovingPlatform
+  - Wall
+  - BrokenController
   layers:
   - Default
   - TransparentFX
@@ -18,8 +21,8 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
+  - Wall
+  - Obstacle
   - 
   - 
   - 

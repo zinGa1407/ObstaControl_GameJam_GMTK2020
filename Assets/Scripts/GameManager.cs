@@ -57,9 +57,17 @@ public class GameManager : MonoBehaviour
     {
         return isRemoteBroken;
     }
+
     public void SetRemoteBroken(bool isBroken)
     {
         isRemoteBroken = isBroken;
+    }
+
+    public void SetControllerBroken()
+    {
+        SetRemoteBroken(true);
+
+        UIManager.Instance.ShowDialogueText("Ooooh no!\nThe freezing temperatures must have broken the remote control\nIt will only get harder now...");
     }
 
     public void ShowIngameMenu()
@@ -83,5 +91,11 @@ public class GameManager : MonoBehaviour
     {
         SceneManager.LoadScene(v);
         Time.timeScale = 1f;
+    }
+
+    public void FinishReached()
+    {
+        UIManager.Instance.ShowGameOverScreen();
+        gameState = GameState.PAUSE;
     }
 }

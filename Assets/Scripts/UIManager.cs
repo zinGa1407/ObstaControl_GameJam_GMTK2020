@@ -35,6 +35,9 @@ public class UIManager : MonoBehaviour
     private GameObject ingameMenu = null;
 
     [SerializeField]
+    private GameObject gameOverScreen = null;
+
+    [SerializeField]
     private Slider volumeSlider = null;
 
     [SerializeField]
@@ -67,6 +70,11 @@ public class UIManager : MonoBehaviour
     public void StartDialogue()
     {
         slowTextAdder.StartNewDialogueText("Welcome test subject #001407\nGrab the remote control and get to the end\nGood Luck...");
+    }
+
+    public void ShowDialogueText(string text)
+    {
+        slowTextAdder.StartNewDialogueText(text);
     }
 
     public void AddFeedbackText(string feedbacktxt)
@@ -118,6 +126,11 @@ public class UIManager : MonoBehaviour
                 Application.OpenURL("https://twitter.com/ElzingaGames");
                 break;
         }
+    }
+
+    public void ShowGameOverScreen()
+    {
+        gameOverScreen.SetActive(true);
     }
 
 }

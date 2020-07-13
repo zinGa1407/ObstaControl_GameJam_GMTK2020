@@ -14,16 +14,7 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private AudioSource musicSource = null; // Initialize a reference to the audio source which will play the Music.
 
     [SerializeField]
-    private Slider volumeSlider;
-    
-    [SerializeField]
-    private GameObject MainMenu;
-
-    [SerializeField]
-    private GameObject ExitGamePopup;
-
-    [SerializeField]
-    private GameObject CreditsPopup;
+    private Slider volumeSlider = null;
 
     void Awake()
     {

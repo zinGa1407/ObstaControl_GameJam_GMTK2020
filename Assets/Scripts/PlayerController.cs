@@ -64,8 +64,8 @@ public class PlayerController : MonoBehaviour
             if(GameManager.Instance.gameState == GameManager.GameState.PLAY)
             {
                 //Movement Input
-                horizontal = Input.GetAxis("Horizontal");
-                vertical = Input.GetAxis("Vertical");
+                horizontal = Input.GetAxisRaw("Horizontal");
+                vertical = Input.GetAxisRaw("Vertical");
 
                 //Remote Control Input
                 if (hasRemoteControl)
@@ -129,6 +129,7 @@ public class PlayerController : MonoBehaviour
 
                 //Respawn Player
                 if (Input.GetKeyDown(KeyCode.R)) GameManager.Instance.RespawnPlayer(this.gameObject, _rb);
+
             }
 
             //Ingame Menu
@@ -152,27 +153,27 @@ public class PlayerController : MonoBehaviour
                 //if (_rb.velocity.z >= maxSpeed || _rb.velocity.z <= -maxSpeed) movementForce.z = 0f;
 
                 //Add movement Force to rigidbody
-                if (IsGrounded())
-                {
+                //if (IsGrounded())
+                //{
                     if (Mathf.Abs(_rb.velocity.z) < maxSpeed && Mathf.Abs(_rb.velocity.x) < maxSpeed)
                         _rb.AddForce(direction * moveSpeedMultiplier * 2f, ForceMode.Force);
-                    if (direction == Vector3.zero) _rb.velocity = new Vector3(_rb.velocity.x * 0.8f, _rb.velocity.y, _rb.velocity.z * 0.8f);
-                }
-                else // Air control
-                {
-                    if (Mathf.Abs(_rb.velocity.z) <= maxSpeed || Mathf.Abs(_rb.velocity.x) <= maxSpeed)
-                    {
-                        if (Vector3.Dot(_rb.velocity.normalized, direction) > 0.5f)
-                        {
-                            _rb.AddForce(direction * moveSpeedMultiplier, ForceMode.Acceleration);
-                        }
-                        else _rb.AddForce(direction * moveSpeedMultiplier * 2f, ForceMode.Acceleration);
+                    if (direction == Vector3.zero) _rb.velocity = new Vector3(_rb.velocity.x * 0.95f, _rb.velocity.y, _rb.velocity.z * 0.95f);
+                //}
+                //else // Air control
+                //{
+                //    if (Mathf.Abs(_rb.velocity.z) <= maxSpeed || Mathf.Abs(_rb.velocity.x) <= maxSpeed)
+                //    {
+                //        if (Vector3.Dot(_rb.velocity.normalized, direction) > 0.5f)
+                //        {
+                //            _rb.AddForce(direction * moveSpeedMultiplier, ForceMode.Acceleration);
+                //        }
+                //        else _rb.AddForce(direction * moveSpeedMultiplier * 2f, ForceMode.Acceleration);
 
-                        _rb.velocity = new Vector3(Mathf.Clamp(_rb.velocity.x, -maxSpeed, maxSpeed), _rb.velocity.y, Mathf.Clamp(_rb.velocity.z, -maxSpeed, maxSpeed));
-                    }
-                    //Slow down velocity to make movement work again    
-                    else _rb.velocity = new Vector3(_rb.velocity.x * 0.9f, _rb.velocity.y, _rb.velocity.z * 0.9f);
-                }
+                //        _rb.velocity = new Vector3(Mathf.Clamp(_rb.velocity.x, -maxSpeed, maxSpeed), _rb.velocity.y, Mathf.Clamp(_rb.velocity.z, -maxSpeed, maxSpeed));
+                //    }
+                //    //Slow down velocity to make movement work again    
+                //    else _rb.velocity = new Vector3(_rb.velocity.x * 0.9f, _rb.velocity.y, _rb.velocity.z * 0.9f);
+                //}
 
                 ////Jump
                 //if ((Input.GetKeyDown(KeyCode.Space) || bunnyHopJumpTimer > 0f))
